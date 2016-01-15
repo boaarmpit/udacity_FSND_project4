@@ -395,6 +395,9 @@ class ConferenceApi(remote.Service):
             path='profile', http_method='GET', name='getProfile')
     def getProfile(self, request):
         """Return user profile."""
+        user = endpoints.get_current_user()
+        if not user:
+            raise endpoints.UnauthorizedException('Authorization required')
         return self._doProfile()
 
 
