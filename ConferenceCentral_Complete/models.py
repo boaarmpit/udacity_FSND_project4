@@ -108,3 +108,31 @@ class ConferenceQueryForms(messages.Message):
     """ConferenceQueryForms -- multiple ConferenceQueryForm inbound form message"""
     filters = messages.MessageField(ConferenceQueryForm, 1, repeated=True)
 
+class Session(ndb.Model):
+    """Session -- Session object"""
+    name            = ndb.StringProperty(required=True)
+    highlights      = ndb.StringProperty()
+    speakerUserId   = ndb.StringProperty()
+    duration        = ndb.FloatProperty()  # in hours
+    typeOfSession   = ndb.StringProperty()
+    date            = ndb.DateProperty()
+    startTime       = ndb.TimeProperty()
+
+class SessionForm(messages.Message):
+    """SessionForm -- Session outbound form message"""
+    name            = messages.StringField(1, required=True)
+    highlights      = messages.StringField(2)
+    speakerUserId   = messages.StringField(3)
+    duration        = messages.FloatField(4)  # in hours
+    typeOfSession   = messages.StringField(5)
+    date            = messages.StringField(6)
+    startTime       = messages.StringField(7)
+    websafeConferenceKey = messages.StringField(8)
+
+class SessionForms(messages.Message):
+    """SessionForms -- multiple Session outbound form message"""
+    items = messages.MessageField(SessionForm, 1, repeated=True)
+
+class SessionQueryForm(messages.Message):
+    """SessionQueryForm -- Session query inbound form message"""
+    websafeConferenceKey = messages.StringField(1)
