@@ -40,6 +40,7 @@ from models import Session
 from models import SessionForm
 from models import SessionForms
 from models import SessionQueryForm
+from models import WishlistForm
 
 from settings import WEB_CLIENT_ID
 from settings import ANDROID_CLIENT_ID
@@ -459,6 +460,30 @@ class ConferenceApi(remote.Service):
             items=[self._copySessionToForm(session) for session in sessions]
         )
 
+
+    @endpoints.method(WishlistForm, ProfileForm,
+                      http_method='POST')
+    def addSessionToWishlist(self, request):
+        """adds the session to the user's list of sessions they are interested in attending"""
+        prof = self._getProfileFromUser()  # get user Profile
+
+        session_key = request.sessionKey
+        try:
+            ndb.Key(urlsafe=session_key).get()
+        except:
+            raise endpoints.NotFoundException(
+                'No session found with key: %s' % session_key)
+
+        # check if user already registered otherwise add
+        if session_key in prof.sessionKeysWishlist:
+            raise ConflictException(
+                "You have already added this session to your wishlist")
+        else:
+            prof.sessionKeysWishlist.append(session_key)
+
+        # write things back to the datastore & return
+        prof.put()
+        return self._copyProfileToForm(prof)
 
 
 
