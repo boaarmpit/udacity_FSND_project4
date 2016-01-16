@@ -136,3 +136,5 @@ class SessionForms(messages.Message):
 class SessionQueryForm(messages.Message):
     """SessionQueryForm -- Session query inbound form message"""
     websafeConferenceKey = messages.StringField(1)
+    typeOfSession        = messages.StringField(2)
+    speakerUserId        = messages.StringField(3)
