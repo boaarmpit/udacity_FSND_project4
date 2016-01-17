@@ -41,6 +41,7 @@ from models import SessionForm
 from models import SessionForms
 from models import SessionQueryForm
 from models import WishlistForm
+from models import WishlistQueryForm
 
 from settings import WEB_CLIENT_ID
 from settings import ANDROID_CLIENT_ID
@@ -467,12 +468,11 @@ class ConferenceApi(remote.Service):
         """adds the session to the user's list of sessions they are interested in attending"""
         prof = self._getProfileFromUser()  # get user Profile
 
-        session_key = request.sessionKey
         try:
-            ndb.Key(urlsafe=session_key).get()
+            session_key = ndb.Key(urlsafe=request.websafeSessionKey)
         except:
             raise endpoints.NotFoundException(
-                'No session found with key: %s' % session_key)
+                'No session found with key: %s' % request.websafeSessionKey)
 
         # check if user already registered otherwise add
         if session_key in prof.sessionKeysWishlist:
@@ -485,6 +485,33 @@ class ConferenceApi(remote.Service):
         prof.put()
         return self._copyProfileToForm(prof)
 
+    @endpoints.method(WishlistQueryForm, SessionForms,
+                      http_method='POST')
+    def getSessionsInWishlist(self, request):
+        # get user Profile
+        prof = self._getProfileFromUser()
+
+        # get Conference object from request; bail if not found
+        try:
+            conference_key = ndb.Key(urlsafe=request.websafeConferenceKey)
+        except:
+            raise endpoints.NotFoundException(
+                'No conference found with key: %s' % request.websafeConferenceKey)
+
+        # create ancestor query for all key matches for this conference and
+        # filter by type
+        sessions = Session.query(ancestor=conference_key)
+        for session in sessions:
+            print session.key.urlsafe()
+
+        sessions = sessions.filter(Session.key.IN(prof.sessionKeysWishlist))  # working with key objects directly
+
+        # return set of SessionForm objects per Session
+        return SessionForms(
+            items=[self._copySessionToForm(session) for session in sessions]
+        )
+
+    # deleteSessionInWishlist(SessionKey) -- removes the session from the user's list of sessions they are interested in attending TODO
 
 
 # - - - Profile objects - - - - - - - - - - - - - - - - - - -
@@ -498,6 +525,8 @@ class ConferenceApi(remote.Service):
                 # convert t-shirt string to Enum; just copy others
                 if field.name == 'teeShirtSize':
                     setattr(pf, field.name, getattr(TeeShirtSize, getattr(prof, field.name)))
+                elif field.name == 'sessionKeysWishlist':
+                    setattr(pf, field.name, [key.urlsafe() for key in getattr(prof, field.name)])
                 else:
                     setattr(pf, field.name, getattr(prof, field.name))
         pf.check_initialized()

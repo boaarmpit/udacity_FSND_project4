@@ -27,7 +27,7 @@ class Profile(ndb.Model):
     mainEmail = ndb.StringProperty()
     teeShirtSize = ndb.StringProperty(default='NOT_SPECIFIED')
     conferenceKeysToAttend = ndb.StringProperty(repeated=True)
-    sessionKeysWishlist = ndb.StringProperty(repeated=True)
+    sessionKeysWishlist = ndb.KeyProperty(repeated=True)
 
 class ProfileMiniForm(messages.Message):
     """ProfileMiniForm -- update Profile form message"""
@@ -143,4 +143,8 @@ class SessionQueryForm(messages.Message):
 
 class WishlistForm(messages.Message):
     """WishlistForm -- Wishlist outbound form message"""
-    sessionKey      = messages.StringField(1, required=True)
+    websafeSessionKey    = messages.StringField(1, required=True)
+
+class WishlistQueryForm(messages.Message):
+    """WishlistForm -- Wishlist outbound form message"""
+    websafeConferenceKey = messages.StringField(1, required=True)
