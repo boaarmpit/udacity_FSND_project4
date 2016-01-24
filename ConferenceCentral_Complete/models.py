@@ -131,11 +131,17 @@ class SessionForms(messages.Message):
     """SessionForms -- multiple Session outbound form message"""
     items = messages.MessageField(SessionForm, 1, repeated=True)
 
-class SessionQueryForm(messages.Message):
-    """SessionQueryForm -- Session query inbound form message"""
+class ConferenceSessionsQueryForm(messages.Message):
+    """ConferenceSessionsQueryForm -- Session query inbound form message
+    for finding all sessions in a conference (that meet criteria)"""
     websafeConferenceKey = messages.StringField(1)
     typeOfSession        = messages.StringField(2)
     speakerUserId        = messages.StringField(3)
+
+class SessionQueryForm(messages.Message):
+    """SessionQueryForm -- Session query inbound form message
+    for finding particular session"""
+    websafeSessionKey   = messages.StringField(1)
 
 class WishlistForm(messages.Message):
     """WishlistForm -- Wishlist outbound form message"""
@@ -144,3 +150,7 @@ class WishlistForm(messages.Message):
 class WishlistQueryForm(messages.Message):
     """WishlistForm -- Wishlist outbound form message"""
     websafeConferenceKey = messages.StringField(1, required=True)
+
+class ReturnForm(messages.Message):
+    """ReturnForm -- for returning single message"""
+    returnMessage = messages.StringField(1, required=True)

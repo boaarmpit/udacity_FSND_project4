@@ -36,8 +36,10 @@ from models import Session
 from models import SessionForm
 from models import SessionForms
 from models import SessionQueryForm
+from models import ConferenceSessionsQueryForm
 from models import WishlistForm
 from models import WishlistQueryForm
+from models import ReturnForm
 
 from settings import WEB_CLIENT_ID
 from settings import ANDROID_CLIENT_ID
@@ -400,7 +402,7 @@ class ConferenceApi(remote.Service):
             return self._createSessionObject(request)
 
 
-    @endpoints.method(SessionQueryForm, SessionForms,
+    @endpoints.method(ConferenceSessionsQueryForm, SessionForms,
                      path='getConferenceSessions',
                      http_method='POST')
     def getConferenceSessions(self, request):
@@ -421,7 +423,7 @@ class ConferenceApi(remote.Service):
             items=[self._copySessionToForm(session) for session in sessions]
         )
 
-    @endpoints.method(SessionQueryForm, SessionForms,
+    @endpoints.method(ConferenceSessionsQueryForm, SessionForms,
                      path='getConferenceSessionsByType',
                      http_method='POST')
     def getConferenceSessionsByType(self, request):
@@ -446,7 +448,7 @@ class ConferenceApi(remote.Service):
             items=[self._copySessionToForm(session) for session in sessions]
         )
 
-    @endpoints.method(SessionQueryForm, SessionForms,
+    @endpoints.method(ConferenceSessionsQueryForm, SessionForms,
                      path='getSessionsBySpeaker',
                      http_method='POST')
     def getSessionsBySpeaker(self, request):
@@ -516,9 +518,30 @@ class ConferenceApi(remote.Service):
             items=[self._copySessionToForm(session) for session in sessions]
         )
 
-    # deleteSessionInWishlist(SessionKey)
-    #  -- removes the session from the user's list of sessions they are
-    #  interested in attending TODO
+
+    @endpoints.method(SessionQueryForm, ProfileForm,
+                      http_method='POST')
+    def deleteSessionInWishlist(self, request):
+        """-- removes the session from the user's list of sessions they are
+        interested in attending"""
+        # get user Profile and try and find session with given key
+        prof = self._getProfileFromUser()
+        try:
+            session_key = ndb.Key(urlsafe=request.websafeSessionKey)
+        except:
+            raise endpoints.NotFoundException(
+                'No session found with key: %s'
+                % request.websafeSessionKey)
+
+        # check delete session from wishlist if it exists
+        if session_key in prof.sessionKeysWishlist:
+            prof.sessionKeysWishlist.remove(session_key)
+        else:
+            raise ConflictException("Session not found in wishlist")
+
+        # write things back to the datastore & return
+        prof.put()
+        return self._copyProfileToForm(prof)
 
 
 # - - - Profile objects - - - - - - - - - - - - - - - - - - -
