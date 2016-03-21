@@ -17,13 +17,12 @@ from utils import get_by_urlsafe
 USER_REQUEST = endpoints.ResourceContainer(
     user_name=messages.StringField(1))
 
-GAME_REQUEST = endpoints.ResourceContainer(
-    player_1_name=messages.StringField(1),
-    player_2_name=messages.StringField(2))
-
 CREATE_MATCH_REQUEST = endpoints.ResourceContainer(
     player_1_name=messages.StringField(1),
     player_2_name=messages.StringField(2))
+
+GET_MATCH_REQUEST = endpoints.ResourceContainer(
+    match_key=messages.StringField(1))
 
 CREATE_GAME_REQUEST = endpoints.ResourceContainer(
     match_key=messages.StringField(1))
@@ -229,5 +228,27 @@ class PrisonerApi(remote.Service):
 
         return StringMessages(message=[match.key.urlsafe()
                                        for match in matches])
+
+    @endpoints.method(request_message=GET_MATCH_REQUEST,
+                      response_message=StringMessage,
+                      path='cancel_match',
+                      name='cancel_match',
+                      http_method='POST')
+    def cancel_match(self, request):
+        """Cancel an active match"""
+
+        match = get_by_urlsafe(request.match_key, Match)
+        if not match:
+            raise endpoints.ConflictException('Cannot find match with key {}'.
+                                              format(request.match_key))
+        if not match.is_active:
+            raise endpoints.ConflictException('Match already inactive')
+
+        match.games_remaining = 0
+        match.is_active = False
+        match.put()
+
+        return StringMessage(message='Match {} cancelled'.
+                             format(request.match_key))
 
 api = endpoints.api_server([PrisonerApi])
