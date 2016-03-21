@@ -10,17 +10,21 @@ class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
     email = ndb.StringProperty(required=True)
-    score = ndb.IntegerProperty(required=True)
+    score = ndb.IntegerProperty(required=True)  # Number of wins minus losses
 
 class Match(ndb.Model):
     """Match between two players including multiple Games"""
     player_1_name = ndb.StringProperty()
     player_2_name = ndb.StringProperty()
+    player_1_penalty = ndb.IntegerProperty()  # Penalty in years
+    player_2_penalty = ndb.IntegerProperty()  # Penalty in years
+    games_remaining = ndb.IntegerProperty()
+    is_active = ndb.BooleanProperty()
 
 class Game(ndb.Model):
     """Game (in Match)"""
-    player_1_entry = ndb.BooleanProperty()  # True corresponds to defecting
-    player_2_entry = ndb.BooleanProperty()  # True corresponds to defecting
+    player_1_move = ndb.BooleanProperty()  # True corresponds to defecting
+    player_2_move = ndb.BooleanProperty()  # True corresponds to defecting
     is_active = ndb.BooleanProperty()
     start_time = ndb.DateTimeProperty()
 

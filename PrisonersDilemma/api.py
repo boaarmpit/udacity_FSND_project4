@@ -4,6 +4,7 @@ move game logic to another file. Ideally the API will be simple, concerned
 primarily with communication to/from the API's users."""
 
 from datetime import datetime
+from random import randint
 import endpoints
 from protorpc import remote, messages
 from google.appengine.api import oauth
@@ -32,7 +33,7 @@ GET_GAME_REQUEST = endpoints.ResourceContainer(
 PLAY_GAME_REQUEST = endpoints.ResourceContainer(
     game_key=messages.StringField(1),
     player_name=messages.StringField(2),
-    play=messages.BooleanField(3))
+    move=messages.BooleanField(3))
 
 @endpoints.api(name='prisoner', version='v1')
 class PrisonerApi(remote.Service):
@@ -73,7 +74,11 @@ class PrisonerApi(remote.Service):
                     'No user named {} exists!'.format(player_name))
 
         match = Match(player_1_name=request.player_1_name,
-                      player_2_name=request.player_2_name)
+                      player_2_name=request.player_2_name,
+                      player_1_penalty=0,
+                      player_2_penalty=0,
+                      games_remaining=randint(1, 20),
+                      is_active=True)
 
         match_key = match.put()
         return StringMessage(message='Match created between {} and {}! '
@@ -95,7 +100,8 @@ class PrisonerApi(remote.Service):
                                               format(request.match_key))
 
         game = Game(parent=match.key,
-                    start_time=datetime.now())
+                    start_time=datetime.now(),
+                    is_active=True)
 
         game_key = game.put()
         return StringMessage(message='Game created between {} and {}! '
@@ -130,20 +136,24 @@ class PrisonerApi(remote.Service):
     def play_game(self, request):
         """Play move in a Game"""
 
+        # Verify inputs and game state
         game = get_by_urlsafe(request.game_key, Game)
         if not game:
             raise endpoints.ConflictException('Cannot find game with key {}'.
                                               format(request.game_key))
-        match = game.key.parent().get()
+        if not game.is_active:
+            raise endpoints.ConflictException('Game has already finished')
 
         if not User.query(User.name == request.player_name).get():
                 raise endpoints.ConflictException(
                     'No user named {} exists!'.format(request.player_name))
 
+        # Save single player's move
+        match = game.key.parent().get()
         if match.player_1_name == request.player_name:
-            game.player_1_entry = request.play
+            game.player_1_move = request.move
         elif match.player_2_name == request.player_name:
-            game.player_2_entry = request.play
+            game.player_2_move = request.move
         else:
             raise endpoints.ConflictException('Player {} is not playing in '
                                               'game {}'.
@@ -151,26 +161,54 @@ class PrisonerApi(remote.Service):
                                                      request.game_key))
         game.put()
 
+        # Evaluate result and update Game and Match if game has finished
         result = 'Not all players have played yet'
-        if game.player_1_entry is not None \
-                and game.player_2_entry is not None:
-            if game.player_1_entry:
-                if game.player_2_entry:
-                    p1_score, p2_score = 2, 2
+        if game.player_1_move is not None \
+                and game.player_2_move is not None:
+            if game.player_1_move:
+                if game.player_2_move:
+                    p1_penalty, p2_penalty = 2, 2
                 else:
-                    p1_score, p2_score = 0, 3
+                    p1_penalty, p2_penalty = 0, 3
             else:
-                if game.player_2_entry:
-                    p1_score, p2_score = 3, 0
+                if game.player_2_move:
+                    p1_penalty, p2_penalty = 3, 0
                 else:
-                    p1_score, p2_score = 1, 1
+                    p1_penalty, p2_penalty = 1, 1
             result = 'Result: {}:{} years, {}:{} years.'.format(
-                match.player_1_name, p1_score, match.player_2_name, p2_score)
+                match.player_1_name, p1_penalty,
+                match.player_2_name, p2_penalty)
+
+            game.is_active = False
+            game.put()
+
+            match.player_1_penalty += p1_penalty
+            match.player_2_penalty += p2_penalty
+            match.games_remaining -= 1
+            match.put()
+
+        # Update Match and Users if match has finished
+        if match.games_remaining < 1:
+            match.is_active = False
+            match.put()
+            if match.player_1_penalty != match.player_2_penalty:  # if not draw
+                if match.player_1_penalty < match.player_2_penalty:
+                    winner_name = match.player_1_name
+                    loser_name = match.player_2_name
+                else:
+                    winner_name = match.player_2_name
+                    loser_name = match.player_1_name
+                winner = User.query(User.name == winner_name).get()
+                loser = User.query(User.name == loser_name).get()
+                winner.score += 1
+                loser.score -= 1
+                winner.put()
+                loser.put()
 
         return StringMessage(message='Registered player {}\'s play of {} in '
                                      'game {} . '.format(request.player_name,
-                                                       request.play,
-                                                       request.game_key)
-                                     +result)
+                                                         request.move,
+                                                         request.game_key)
+                                     + result)
 
 api = endpoints.api_server([PrisonerApi])
