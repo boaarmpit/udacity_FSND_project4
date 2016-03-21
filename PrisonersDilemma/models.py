@@ -10,18 +10,17 @@ class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
     email = ndb.StringProperty(required=True)
-
-class Game(ndb.Model):
-    """Game between two players including multiple Matches"""
-    player_1_name = ndb.StringProperty()
-    player_2_name = ndb.StringProperty()
+    score = ndb.IntegerProperty(required=True)
 
 class Match(ndb.Model):
-    """Match (in Game)"""
+    """Match between two players including multiple Games"""
     player_1_name = ndb.StringProperty()
     player_2_name = ndb.StringProperty()
-    player_1_entry = ndb.BooleanProperty()
-    player_2_entry = ndb.BooleanProperty()
+
+class Game(ndb.Model):
+    """Game (in Match)"""
+    player_1_entry = ndb.BooleanProperty()  # True corresponds to defecting
+    player_2_entry = ndb.BooleanProperty()  # True corresponds to defecting
     is_active = ndb.BooleanProperty()
     start_time = ndb.DateTimeProperty()
 

@@ -8,22 +8,29 @@ import endpoints
 from protorpc import remote, messages
 from google.appengine.api import oauth
 
-from models import User, Match
+from models import User, Game, Match
 from models import StringMessage
 from utils import get_by_urlsafe
 
 USER_REQUEST = endpoints.ResourceContainer(
     user_name=messages.StringField(1))
 
-MATCH_REQUEST = endpoints.ResourceContainer(
+GAME_REQUEST = endpoints.ResourceContainer(
     player_1_name=messages.StringField(1),
     player_2_name=messages.StringField(2))
 
-GET_MATCH_REQUEST = endpoints.ResourceContainer(
-    websafekey=messages.StringField(1))
+CREATE_MATCH_REQUEST = endpoints.ResourceContainer(
+    player_1_name=messages.StringField(1),
+    player_2_name=messages.StringField(2))
 
-PLAY_MATCH_REQUEST = endpoints.ResourceContainer(
-    websafekey=messages.StringField(1),
+CREATE_GAME_REQUEST = endpoints.ResourceContainer(
+    match_key=messages.StringField(1))
+
+GET_GAME_REQUEST = endpoints.ResourceContainer(
+    game_key=messages.StringField(1))
+
+PLAY_GAME_REQUEST = endpoints.ResourceContainer(
+    game_key=messages.StringField(1),
     player_name=messages.StringField(2),
     play=messages.BooleanField(3))
 
@@ -44,12 +51,12 @@ class PrisonerApi(remote.Service):
         if User.query(User.name == request.user_name).get():
             raise endpoints.ConflictException(
                 'A User with that name already exists!')
-        user = User(name=request.user_name, email=user.email())
+        user = User(name=request.user_name, email=user.email(), score=0)
         user.put()
         return StringMessage(message='User {} created!'.format(
                 request.user_name))
 
-    @endpoints.method(request_message=MATCH_REQUEST,
+    @endpoints.method(request_message=CREATE_MATCH_REQUEST,
                       response_message=StringMessage,
                       path='create_match',
                       name='create_match',
@@ -66,62 +73,104 @@ class PrisonerApi(remote.Service):
                     'No user named {} exists!'.format(player_name))
 
         match = Match(player_1_name=request.player_1_name,
-                      player_2_name=request.player_2_name,
-                      start_time=datetime.now())
+                      player_2_name=request.player_2_name)
+
         match_key = match.put()
         return StringMessage(message='Match created between {} and {}! '
                                      '(key={})'.format(request.player_1_name,
                                                        request.player_2_name,
                                                        match_key.urlsafe()))
 
-    @endpoints.method(request_message=GET_MATCH_REQUEST,
+    @endpoints.method(request_message=CREATE_GAME_REQUEST,
                       response_message=StringMessage,
-                      path='get_match',
-                      name='get_match',
+                      path='create_game',
+                      name='create_game',
                       http_method='POST')
-    def get_match(self, request):
-        """Get a Match from its websafe key"""
+    def create_game(self, request):
+        """Create a Game between two Users"""
 
-        match = get_by_urlsafe(request.websafekey, Match)
+        match = get_by_urlsafe(request.match_key, Match)
         if not match:
             raise endpoints.ConflictException('Cannot find match with key {}'.
-                                              format(request.websafekey))
+                                              format(request.match_key))
 
-        return StringMessage(message='Found match between {} and {} with '
-                                     'key {}'.format(match.player_1_name,
-                                                     match.player_2_name,
-                                                     request.websafekey))
+        game = Game(parent=match.key,
+                    start_time=datetime.now())
 
-    @endpoints.method(request_message=PLAY_MATCH_REQUEST,
+        game_key = game.put()
+        return StringMessage(message='Game created between {} and {}! '
+                                     '(key={})'.format(match.player_1_name,
+                                                       match.player_2_name,
+                                                       game_key.urlsafe()))
+
+    @endpoints.method(request_message=GET_GAME_REQUEST,
                       response_message=StringMessage,
-                      path='play_match',
-                      name='play_match',
+                      path='get_game',
+                      name='get_game',
                       http_method='POST')
-    def play_match(self, request):
-        """Play move in a Match"""
+    def get_game(self, request):
+        """Get a Game from its websafe key"""
 
-        match = get_by_urlsafe(request.websafekey, Match)
-        if not match:
-            raise endpoints.ConflictException('Cannot find match with key {}'.
-                                              format(request.websafekey))
+        game = get_by_urlsafe(request.game_key, Game)
+        if not game:
+            raise endpoints.ConflictException('Cannot find game with key {}'.
+                                              format(request.game_key))
+        match = game.key.parent().get()
+
+        return StringMessage(message='Found game between {} and {} with key {}'
+                                     ''.format(match.player_1_name,
+                                               match.player_2_name,
+                                               request.game_key))
+
+    @endpoints.method(request_message=PLAY_GAME_REQUEST,
+                      response_message=StringMessage,
+                      path='play_game',
+                      name='play_game',
+                      http_method='POST')
+    def play_game(self, request):
+        """Play move in a Game"""
+
+        game = get_by_urlsafe(request.game_key, Game)
+        if not game:
+            raise endpoints.ConflictException('Cannot find game with key {}'.
+                                              format(request.game_key))
+        match = game.key.parent().get()
 
         if not User.query(User.name == request.player_name).get():
                 raise endpoints.ConflictException(
                     'No user named {} exists!'.format(request.player_name))
 
         if match.player_1_name == request.player_name:
-            match.player_1_entry = request.play
+            game.player_1_entry = request.play
         elif match.player_2_name == request.player_name:
-            match.player_2_entry = request.play
+            game.player_2_entry = request.play
         else:
             raise endpoints.ConflictException('Player {} is not playing in '
-                                              'match {}'.
+                                              'game {}'.
                                               format(request.player_name,
-                                                     request.websafekey))
-        match.put()
+                                                     request.game_key))
+        game.put()
+
+        result = 'Not all players have played yet'
+        if game.player_1_entry is not None \
+                and game.player_2_entry is not None:
+            if game.player_1_entry:
+                if game.player_2_entry:
+                    p1_score, p2_score = 2, 2
+                else:
+                    p1_score, p2_score = 0, 3
+            else:
+                if game.player_2_entry:
+                    p1_score, p2_score = 3, 0
+                else:
+                    p1_score, p2_score = 1, 1
+            result = 'Result: {}:{} years, {}:{} years.'.format(
+                match.player_1_name, p1_score, match.player_2_name, p2_score)
+
         return StringMessage(message='Registered player {}\'s play of {} in '
-                                     'match {}'.format(request.player_name,
+                                     'game {} . '.format(request.player_name,
                                                        request.play,
-                                                       request.websafekey))
+                                                       request.game_key)
+                                     +result)
 
 api = endpoints.api_server([PrisonerApi])
