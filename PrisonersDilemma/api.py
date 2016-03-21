@@ -6,7 +6,7 @@ primarily with communication to/from the API's users."""
 from datetime import datetime
 from random import randint
 import endpoints
-from protorpc import remote, messages
+from protorpc import remote, messages, message_types
 from google.appengine.api import oauth
 from google.appengine.ext import ndb
 
@@ -250,5 +250,24 @@ class PrisonerApi(remote.Service):
 
         return StringMessage(message='Match {} cancelled'.
                              format(request.match_key))
+
+    @endpoints.method(request_message=message_types.VoidMessage,
+                      response_message=StringMessages,
+                      path='get_user_rankings',
+                      name='get_user_rankings',
+                      http_method='POST')
+    def get_user_rankings(self, request):
+        """Return list of users in descending order of score"""
+        users = User.query().order(-User.score).fetch()
+
+        return StringMessages(message=['{} (score:{})'.
+                              format(user.name, user.score) for user in users])
+
+    @endpoints.method(request_message=GET_MATCH_REQUEST,
+                      response_message=StringMessages,
+                      path='get_match_history',
+                      name='get_match_history',
+                      http_method='POST')
+
 
 api = endpoints.api_server([PrisonerApi])
