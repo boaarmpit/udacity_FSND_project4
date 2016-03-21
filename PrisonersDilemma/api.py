@@ -8,9 +8,10 @@ from random import randint
 import endpoints
 from protorpc import remote, messages
 from google.appengine.api import oauth
+from google.appengine.ext import ndb
 
 from models import User, Game, Match
-from models import StringMessage
+from models import StringMessage, StringMessages
 from utils import get_by_urlsafe
 
 USER_REQUEST = endpoints.ResourceContainer(
@@ -34,6 +35,9 @@ PLAY_GAME_REQUEST = endpoints.ResourceContainer(
     game_key=messages.StringField(1),
     player_name=messages.StringField(2),
     move=messages.BooleanField(3))
+
+GET_USER_MATCH_REQUEST = endpoints.ResourceContainer(
+    player_name=messages.StringField(1))
 
 @endpoints.api(name='prisoner', version='v1')
 class PrisonerApi(remote.Service):
@@ -210,5 +214,20 @@ class PrisonerApi(remote.Service):
                                                          request.move,
                                                          request.game_key)
                                      + result)
+
+    @endpoints.method(request_message=GET_USER_MATCH_REQUEST,
+                      response_message=StringMessages,
+                      path='get_user_matches',
+                      name='get_user_matches',
+                      http_method='POST')
+    def get_user_matches(self, request):
+        """Get all active matches for a user"""
+
+        matches = Match.query(ndb.AND(Match.is_active == True,
+                              ndb.OR(Match.player_1_name == request.player_name,
+                                     Match.player_2_name == request.player_name))).fetch()
+
+        return StringMessages(message=[match.key.urlsafe()
+                                       for match in matches])
 
 api = endpoints.api_server([PrisonerApi])
