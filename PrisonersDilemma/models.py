@@ -12,6 +12,7 @@ class User(ndb.Model):
     email = ndb.StringProperty(required=True)
     score = ndb.IntegerProperty(required=True)  # Number of wins minus losses
 
+
 class Match(ndb.Model):
     """Match between two players including multiple Games"""
     player_1_name = ndb.StringProperty()
@@ -21,6 +22,7 @@ class Match(ndb.Model):
     games_remaining = ndb.IntegerProperty()
     is_active = ndb.BooleanProperty()
 
+
 class Game(ndb.Model):
     """Game (in Match)"""
     player_1_move = ndb.BooleanProperty()  # True corresponds to defecting
@@ -28,9 +30,11 @@ class Game(ndb.Model):
     is_active = ndb.BooleanProperty()
     start_time = ndb.DateTimeProperty()
 
+
 class StringMessage(messages.Message):
     """StringMessage-- outbound (single) string message"""
     message = messages.StringField(1, required=True)
+
 
 class StringMessages(messages.Message):
     """StringMessage-- outbound (repeated) string message"""

@@ -38,9 +38,11 @@ PLAY_GAME_REQUEST = endpoints.ResourceContainer(
 GET_USER_MATCH_REQUEST = endpoints.ResourceContainer(
     player_name=messages.StringField(1))
 
+
 @endpoints.api(name='prisoner', version='v1')
 class PrisonerApi(remote.Service):
     """Game API"""
+
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=StringMessage,
                       path='create_user',
@@ -58,7 +60,7 @@ class PrisonerApi(remote.Service):
         user = User(name=request.user_name, email=user.email(), score=0)
         user.put()
         return StringMessage(message='User {} created!'.format(
-                request.user_name))
+            request.user_name))
 
     @endpoints.method(request_message=CREATE_MATCH_REQUEST,
                       response_message=StringMessage,
@@ -148,8 +150,8 @@ class PrisonerApi(remote.Service):
             raise endpoints.ConflictException('Game has already finished')
 
         if not User.query(User.name == request.player_name).get():
-                raise endpoints.ConflictException(
-                    'No user named {} exists!'.format(request.player_name))
+            raise endpoints.ConflictException(
+                'No user named {} exists!'.format(request.player_name))
 
         # Save single player's move
         match = game.key.parent().get()
@@ -223,8 +225,11 @@ class PrisonerApi(remote.Service):
         """Get all active matches for a user"""
 
         matches = Match.query(ndb.AND(Match.is_active == True,
-                              ndb.OR(Match.player_1_name == request.player_name,
-                                     Match.player_2_name == request.player_name))).fetch()
+                                      ndb.OR(
+                                          Match.player_1_name ==
+                                          request.player_name,
+                                          Match.player_2_name ==
+                                          request.player_name))).fetch()
 
         return StringMessages(message=[match.key.urlsafe()
                                        for match in matches])
@@ -268,6 +273,19 @@ class PrisonerApi(remote.Service):
                       path='get_match_history',
                       name='get_match_history',
                       http_method='POST')
+    def get_match_history(self, request):
+        """Cancel an active match"""
+
+        match = get_by_urlsafe(request.match_key, Match)
+        if not match:
+            raise endpoints.ConflictException('Cannot find match with key {}'.
+                                              format(request.match_key))
+
+        games = Game.query(ancestor=match.key).order(Game.start_time)
+
+        return StringMessages(message=[
+            'p1:{}, p2:{}'.format(game.player_1_move, game.player_2_move)
+            for game in games])
 
 
 api = endpoints.api_server([PrisonerApi])
