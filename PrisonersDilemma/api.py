@@ -118,7 +118,7 @@ class PrisonerApi(remote.Service):
                       response_message=StringMessage,
                       path='get_game',
                       name='get_game',
-                      http_method='POST')
+                      http_method='GET')
     def get_game(self, request):
         """Get a Game from its websafe key"""
 
@@ -220,7 +220,7 @@ class PrisonerApi(remote.Service):
                       response_message=StringMessages,
                       path='get_user_matches',
                       name='get_user_matches',
-                      http_method='POST')
+                      http_method='GET')
     def get_user_matches(self, request):
         """Get all active matches for a user"""
 
@@ -272,7 +272,7 @@ class PrisonerApi(remote.Service):
                       response_message=StringMessages,
                       path='get_match_history',
                       name='get_match_history',
-                      http_method='POST')
+                      http_method='GET')
     def get_match_history(self, request):
         """Cancel an active match"""
 
@@ -287,5 +287,23 @@ class PrisonerApi(remote.Service):
             'p1:{}, p2:{}'.format(game.player_1_move, game.player_2_move)
             for game in games])
 
+    @endpoints.method(request_message=message_types.VoidMessage,
+                      response_message=StringMessages,
+                      path='get_active_users',
+                      name='get_active_users',
+                      http_method='GET')
+    def get_active_users(self, request):
+        """Return list of users with active matches"""
+        users = User.query().fetch()
+
+        active_users = []
+        for user in users:
+            if self.get_user_matches(
+                    GET_USER_MATCH_REQUEST.combined_message_class(
+                        player_name=user.name)).message:
+                print user.name
+                active_users.append(user)
+
+        return StringMessages(message=[user.name for user in active_users])
 
 api = endpoints.api_server([PrisonerApi])

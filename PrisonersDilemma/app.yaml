@@ -15,8 +15,8 @@ handlers:
 - url: /tasks/cache_average_attempts
   script: main.app
 
-#- url: /crons/send_reminder
-#  script: main.app
+- url: /crons/send_reminder
+  script: main.app
 
 libraries:
 - name: webapp2
