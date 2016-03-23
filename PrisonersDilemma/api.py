@@ -301,7 +301,6 @@ class PrisonerApi(remote.Service):
             if self.get_user_matches(
                     GET_USER_MATCH_REQUEST.combined_message_class(
                         player_name=user.name)).message:
-                print user.name
                 active_users.append(user)
 
         return StringMessages(message=[user.name for user in active_users])
