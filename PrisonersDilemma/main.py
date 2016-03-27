@@ -26,16 +26,20 @@ class SendReminderEmail(webapp2.RequestHandler):
             if matches:
                 subject = 'Unfinished match reminder!'
                 body = 'Hello {}, \n\nThe following matches are still in ' \
-                       'progress.\n'.format(user.name)
+                       'progress:\n'.format(user.name)
+                html = 'Hello {}, <br><br>The following matches are still in ' \
+                       'progress:<br>'.format(user.name)
                 for match in matches:
                     body += '{} vs {}\n'.format(match.player_1_name,
                                                 match.player_2_name)
-                body += '<a href="https://{}.appspot.com">Continue playing' \
+                    html += '{} vs {}<br>'.format(match.player_1_name,
+                                                match.player_2_name)
+                body += 'https://{}.appspot.com">Continue playing'\
+                    .format(app_id)
+                html += '<a href="https://{}.appspot.com">Continue playing' \
                         '</a>'.format(app_id)
-                html = body
                 mail.send_mail('noreply@{}.appspotmail.com'.format(app_id),
                                user.email, subject, body, html=html)
-                # TODO fix txt and HTML
 
 app = webapp2.WSGIApplication([('/crons/send_reminder', SendReminderEmail)],
                               debug=True)
