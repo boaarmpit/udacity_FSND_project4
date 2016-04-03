@@ -39,7 +39,7 @@ GET_USER_MATCH_REQUEST = endpoints.ResourceContainer(
     player_name=messages.StringField(1))
 
 
-@endpoints.api(name='prisoner', version='v1')
+@endpoints.api(name='prisonersDilemma', version='v1')
 class PrisonerApi(remote.Service):
     """Game API"""
 
@@ -97,7 +97,7 @@ class PrisonerApi(remote.Service):
                       name='create_game',
                       http_method='POST')
     def create_game(self, request):
-        """Create a Game between two Users"""
+        """Create a Game in a Match (between participating Users)"""
 
         match = get_by_urlsafe(request.match_key, Match)
         if not match:
@@ -222,7 +222,7 @@ class PrisonerApi(remote.Service):
                       name='get_user_matches',
                       http_method='GET')
     def get_user_matches(self, request):
-        """Get all active matches for a user"""
+        """Get all active Matches for a User"""
 
         matches = Match.query(ndb.AND(Match.is_active == True,
                                       ndb.OR(
@@ -262,7 +262,7 @@ class PrisonerApi(remote.Service):
                       name='get_user_rankings',
                       http_method='POST')
     def get_user_rankings(self, request):
-        """Return list of users in descending order of score"""
+        """Return list of Users in descending order of score"""
         users = User.query().order(-User.score).fetch()
 
         return StringMessages(message=['{} (score:{})'.
@@ -274,7 +274,7 @@ class PrisonerApi(remote.Service):
                       name='get_match_history',
                       http_method='GET')
     def get_match_history(self, request):
-        """Cancel an active match"""
+        """Cancel an active Match"""
 
         match = get_by_urlsafe(request.match_key, Match)
         if not match:
