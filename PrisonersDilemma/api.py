@@ -139,7 +139,8 @@ class PrisonerApi(remote.Service):
                       name='play_game',
                       http_method='POST')
     def play_game(self, request):
-        """Play move in a Game"""
+        """Play move in a Game.  A move of 'True' corresponds to defecting and
+        'False' corresponds to staying silent."""
 
         # Verify inputs and game state
         game = get_by_urlsafe(request.game_key, Game)
@@ -167,7 +168,6 @@ class PrisonerApi(remote.Service):
         game.put()
 
         # Evaluate result and update Game and Match if game has finished
-        result = 'Not all players have played yet'
         if game.player_1_move is not None \
                 and game.player_2_move is not None:
             if game.player_1_move:
@@ -191,6 +191,8 @@ class PrisonerApi(remote.Service):
             match.player_2_penalty += p2_penalty
             match.games_remaining -= 1
             match.put()
+        else:
+            result = 'Not all players have played yet'
 
         # Update Match and Users if match has finished
         if match.games_remaining < 1:
@@ -274,7 +276,7 @@ class PrisonerApi(remote.Service):
                       name='get_match_history',
                       http_method='GET')
     def get_match_history(self, request):
-        """Cancel an active Match"""
+        """Return list of Game plays in Match"""
 
         match = get_by_urlsafe(request.match_key, Match)
         if not match:

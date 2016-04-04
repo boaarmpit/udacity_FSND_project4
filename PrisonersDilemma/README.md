@@ -74,11 +74,39 @@ This backend for an online two player iterated prisoner's dilemma game has the f
     - Method: POST
     - Parameters: game_key, player_name, move
     - Returns: Confirmation message listing move and result.
-    - Description: *Play move in a Game*
+    - Description: *Play move in a Game.* A move of 'True' corresponds to defecting and 'False' corresponds to staying silent. This function registers a single player's move. If both player's have played it scores the game and returns the result.  It also automatically updates the Match and player User objects.
+    
+ - **get_user_matches**
+    - Path: 'get_user_matches'
+    - Method: GET
+    - Parameters: player_name
+    - Returns: List of active matches for the user
+    - Description: *Play move in a Game.*
 
  - **cancel_match**
-    - Path: 'user'
+    - Path: 'cancel_match'
     - Method: POST
-    - Parameters:
-    - Returns:
+    - Parameters: match_key
+    - Returns: Confirmation message
     - Description: *Cancel an active match*
+ 
+ - **get_user_rankings**
+    - Path: 'get_user_rankings'
+    - Method: GET
+    - Parameters: match_key
+    - Returns: List of Users in descending order of score
+    - Description: *Return list of Users in descending order of score*
+    
+  - **get_match_history**
+    - Path: 'get_match_history'
+    - Method: GET
+    - Parameters: match_key
+    - Returns: List of Game plays in Match
+    - Description: *Return list of Game plays in Match*
+    
+   - **get_active_users**
+    - Path: 'get_active_users'
+    - Method: GET
+    - Parameters: 
+    - Returns: List of users with active matches
+    - Description: *Return list of users with active matches*
