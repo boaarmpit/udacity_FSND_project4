@@ -52,12 +52,14 @@ class PrisonerApi(remote.Service):
         """Create a User. Requires a unique username.
         Gets email from oauth account"""
         scope = 'https://www.googleapis.com/auth/userinfo.email'
-        user = oauth.get_current_user(scope)
+        oauth_user = oauth.get_current_user(scope)
 
         if User.query(User.name == request.user_name).get():
             raise endpoints.ConflictException(
                 'A User with that name already exists!')
-        user = User(name=request.user_name, email=user.email(), score=0)
+
+        user = User(name=request.user_name,
+                    email=oauth_user.email(), score=0)
         user.put()
         return StringMessage(message='User {} created!'.format(
             request.user_name))
@@ -141,6 +143,8 @@ class PrisonerApi(remote.Service):
     def play_game(self, request):
         """Play move in a Game.  A move of 'True' corresponds to defecting and
         'False' corresponds to staying silent."""
+        scope = 'https://www.googleapis.com/auth/userinfo.email'
+        oauth_user = oauth.get_current_user(scope)
 
         # Verify inputs and game state
         game = get_by_urlsafe(request.game_key, Game)
@@ -150,9 +154,15 @@ class PrisonerApi(remote.Service):
         if not game.is_active:
             raise endpoints.ConflictException('Game has already finished')
 
-        if not User.query(User.name == request.player_name).get():
+        player = User.query(User.name == request.player_name).get()
+        if not player:
             raise endpoints.ConflictException(
                 'No user named {} exists!'.format(request.player_name))
+
+        if not player.email == oauth_user.email():
+            raise endpoints.ConflictException(
+                'You are not authorized to play for {}!'.format(
+                    request.player_name))
 
         # Save single player's move
         match = game.key.parent().get()
@@ -180,7 +190,7 @@ class PrisonerApi(remote.Service):
                     p1_penalty, p2_penalty = 3, 0
                 else:
                     p1_penalty, p2_penalty = 1, 1
-            result = 'Result: {}:{} years, {}:{} years.'.format(
+            result = 'Game result: {}:{} years, {}:{} years.'.format(
                 match.player_1_name, p1_penalty,
                 match.player_2_name, p2_penalty)
 
