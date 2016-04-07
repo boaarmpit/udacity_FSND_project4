@@ -29,6 +29,7 @@ class Game(ndb.Model):
     player_2_move = ndb.BooleanProperty()  # True corresponds to defecting
     is_active = ndb.BooleanProperty()
     start_time = ndb.DateTimeProperty()
+    result = ndb.StringProperty()  # Result of game (player penalties)
 
 
 class StringMessage(messages.Message):

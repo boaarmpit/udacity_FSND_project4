@@ -40,6 +40,77 @@ This backend for an online two player iterated prisoner's dilemma game has the f
 1. Create a new project in your *[Google Cloud Platform Console](https://console.cloud.google.com/)* and copy your application ID to *app.yaml* in place of `udacity-project-4-bryn`.
 2. Deploy your project. (See the [docs](https://cloud.google.com/appengine/docs/python/) for details).
 
+### Usage example
+
+Create Users:   
+`POST http://localhost:5000/_ah/api/prisonersDilemma/v1/create_user?user_name=Alice`  
+*{
+ "message": "User Alice created!"
+}*  
+`POST http://localhost:5000/_ah/api/prisonersDilemma/v1/create_user?user_name=Bob`  
+*{
+ "message": "User Bob created!"
+}*  
+
+Create a Match between the two Users:  
+`POST http://localhost:5000/_ah/api/prisonersDilemma/v1/create_match?player_1_name=Alice&player_2_name=Bob`  
+*{
+ "message": "Match created between Alice and Bob! (key=ahpkZXZ-dWRhY2l0eS1wcm9qZWN0LTQtYnJ5bnISCxIFTWF0Y2gYgICAgICAgAsM)"
+}*  
+
+Create a Game in the Match (one round in iterated prisoner's dilemma):  
+`POST http://localhost:5000/_ah/api/prisonersDilemma/v1/create_game?match_key=ahpkZXZ-dWRhY2l0eS1wcm9qZWN0LTQtYnJ5bnISCxIFTWF0Y2gYgICAgICAgAsM`  
+*{
+ "message": "Game created between Alice and Bob! (key=ahpkZXZ-dWRhY2l0eS1wcm9qZWN0LTQtYnJ5bnIjCxIFTWF0Y2gYgICAgICAgAsMCxIER2FtZRiAgICAgIDACAw)"
+}*  
+
+Register the first player's move:  
+`POST http://localhost:5000/_ah/api/prisonersDilemma/v1/play_game?game_key=ahpkZXZ-dWRhY2l0eS1wcm9qZWN0LTQtYnJ5bnIjCxIFTWF0Y2gYgICAgICAgAsMCxIER2FtZRiAgICAgIDACAw&move=true&player_name=Alice`  
+*{
+ "message": "Registered player Alice's play of True in game ahpkZXZ-dWRhY2l0eS1wcm9qZWN0LTQtYnJ5bnIjCxIFTWF0Y2gYgICAgICAgAsMCxIER2FtZRiAgICAgIDACAw . Not all players have played yet. Match still in progress."
+}*  
+
+Register the second player's move:  
+`POST http://localhost:5000/_ah/api/prisonersDilemma/v1/play_game?game_key=ahpkZXZ-dWRhY2l0eS1wcm9qZWN0LTQtYnJ5bnIjCxIFTWF0Y2gYgICAgICAgAsMCxIER2FtZRiAgICAgIDACAw&move=false&player_name=Bob`  
+*{
+ "message": "Registered player Bob's play of False in game ahpkZXZ-dWRhY2l0eS1wcm9qZWN0LTQtYnJ5bnIjCxIFTWF0Y2gYgICAgICAgAsMCxIER2FtZRiAgICAgIDACAw . Game result: Alice:0 years, Bob:3 years. Match still in progress."
+}*  
+
+
+Repeat for the second Game in the Match:  
+`POST http://localhost:5000/_ah/api/prisonersDilemma/v1/create_game?match_key=ahpkZXZ-dWRhY2l0eS1wcm9qZWN0LTQtYnJ5bnISCxIFTWF0Y2gYgICAgICAgAsM`  
+*{
+ "message": "Game created between Alice and Bob! (key=ahpkZXZ-dWRhY2l0eS1wcm9qZWN0LTQtYnJ5bnIjCxIFTWF0Y2gYgICAgICAgAsMCxIER2FtZRiAgICAgIDACgw)"
+}*  
+`POST http://localhost:5000/_ah/api/prisonersDilemma/v1/play_game?game_key=ahpkZXZ-dWRhY2l0eS1wcm9qZWN0LTQtYnJ5bnIjCxIFTWF0Y2gYgICAgICAgAsMCxIER2FtZRiAgICAgIDACgw&move=true&player_name=Alice`  
+*{
+ "message": "Registered player Alice's play of True in game ahpkZXZ-dWRhY2l0eS1wcm9qZWN0LTQtYnJ5bnIjCxIFTWF0Y2gYgICAgICAgAsMCxIER2FtZRiAgICAgIDACgw . Not all players have played yet. Match still in progress."
+}*  
+`POST http://localhost:5000/_ah/api/prisonersDilemma/v1/play_game?game_key=ahpkZXZ-dWRhY2l0eS1wcm9qZWN0LTQtYnJ5bnIjCxIFTWF0Y2gYgICAgICAgAsMCxIER2FtZRiAgICAgIDACgw&move=true&player_name=Bob`  
+*{
+ "message": "Registered player Bob's play of True in game ahpkZXZ-dWRhY2l0eS1wcm9qZWN0LTQtYnJ5bnIjCxIFTWF0Y2gYgICAgICAgAsMCxIER2FtZRiAgICAgIDACgw . Game result: Alice:2 years, Bob:2 years. Match finished. Winner:Alice, Loser:Bob."
+}*  
+
+Get the play history for the Match (a list of the Game results):  
+`GET http://localhost:5000/_ah/api/prisonersDilemma/v1/get_match_history?match_key=ahpkZXZ-dWRhY2l0eS1wcm9qZWN0LTQtYnJ5bnISCxIFTWF0Y2gYgICAgICAgAsM`  
+*{
+ "message": [
+  "Alice:True, Bob:False. Game result: Alice:0 years, Bob:3 years.",
+  "Alice:True, Bob:True. Game result: Alice:2 years, Bob:2 years.",
+ ]
+}*  
+
+Get the player rankings:  
+`POST http://localhost:5000/_ah/api/prisonersDilemma/v1/get_user_rankings`  
+*{
+ "message": [
+  "Alice (score:1)",
+  "Bob (score:-1)"
+ ]
+}*  
+
+
+
 ### Endpoints
  - **create_user**
     - Path: 'create_user'

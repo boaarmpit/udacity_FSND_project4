@@ -105,10 +105,16 @@ class PrisonerApi(remote.Service):
         if not match:
             raise endpoints.ConflictException('Cannot find match with key {}'.
                                               format(request.match_key))
+        if not match.is_active:
+            raise endpoints.ConflictException('Cannot create new Game; '
+                                              'the following Match has '
+                                              'already finished: {}'.
+                                              format(request.match_key))
 
         game = Game(parent=match.key,
                     start_time=datetime.now(),
-                    is_active=True)
+                    is_active=True,
+                    result='Not all players have played yet')
 
         game_key = game.put()
         return StringMessage(message='Game created between {} and {}! '
@@ -131,9 +137,11 @@ class PrisonerApi(remote.Service):
         match = game.key.parent().get()
 
         return StringMessage(message='Found game between {} and {} with key {}'
+                                     '. {}'
                                      ''.format(match.player_1_name,
                                                match.player_2_name,
-                                               request.game_key))
+                                               request.game_key,
+                                               game.result))
 
     @endpoints.method(request_message=PLAY_GAME_REQUEST,
                       response_message=StringMessage,
@@ -190,10 +198,9 @@ class PrisonerApi(remote.Service):
                     p1_penalty, p2_penalty = 3, 0
                 else:
                     p1_penalty, p2_penalty = 1, 1
-            result = 'Game result: {}:{} years, {}:{} years.'.format(
+            game.result = 'Game result: {}:{} years, {}:{} years.'.format(
                 match.player_1_name, p1_penalty,
                 match.player_2_name, p2_penalty)
-
             game.is_active = False
             game.put()
 
@@ -201,8 +208,6 @@ class PrisonerApi(remote.Service):
             match.player_2_penalty += p2_penalty
             match.games_remaining -= 1
             match.put()
-        else:
-            result = 'Not all players have played yet'
 
         # Update Match and Users if match has finished
         if match.games_remaining < 1:
@@ -221,12 +226,17 @@ class PrisonerApi(remote.Service):
                 loser.score -= 1
                 winner.put()
                 loser.put()
+            match_result = 'Match finished. Winner:{}, Loser:{}'.format(
+                winner_name, loser_name)
+        else:
+            match_result = 'Match still in progress'
 
         return StringMessage(message='Registered player {}\'s play of {} in '
-                                     'game {} . '.format(request.player_name,
+                                     'game {}. {}. {}.'.format(request.player_name,
                                                          request.move,
-                                                         request.game_key)
-                                     + result)
+                                                         request.game_key,
+                                                         game.result,
+                                                         match_result))
 
     @endpoints.method(request_message=GET_USER_MATCH_REQUEST,
                       response_message=StringMessages,
@@ -296,7 +306,9 @@ class PrisonerApi(remote.Service):
         games = Game.query(ancestor=match.key).order(Game.start_time)
 
         return StringMessages(message=[
-            'p1:{}, p2:{}'.format(game.player_1_move, game.player_2_move)
+            '{}:{}, {}:{}. {}'.format(match.player_1_name, game.player_1_move,
+                                  match.player_2_name, game.player_2_move,
+                                  game.result)
             for game in games])
 
     @endpoints.method(request_message=message_types.VoidMessage,
