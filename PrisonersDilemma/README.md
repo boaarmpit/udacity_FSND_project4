@@ -25,10 +25,11 @@ This is interesting in itself, however the *iterated* prisoner's dilemma is a mo
 This backend for an online two player iterated prisoner's dilemma game has the following functionality.
 
 - Create Users (players).  Users' email addresses are sourced from their google login and are used for game notifications.
-- Create Matches with multiple Games between Users.
-- Play Games with recorded history, and scores saved to User profiles
+- Create Matches with multiple Games between Users.  (A Game is a single round in the iterated prisoner's dilemma).
+- Play Games with scores saved to User profiles
+- Get history of Game results in a Match.  (Results of rounds of the prisoner's dilemma).
 - Get User rankings
-- Notify Users of unfinished Matches (automatically every hour)
+- Notify Users of unfinished Matches by email (automatically every hour).
 
 ## Usage
 ### Requirements
@@ -77,7 +78,7 @@ Register the second player's move:
 }*  
 
 
-Repeat for the second Game in the Match:  
+Repeat for the second (in this case final) Game in the Match:  
 `POST http://localhost:5000/_ah/api/prisonersDilemma/v1/create_game?match_key=ahpkZXZ-dWRhY2l0eS1wcm9qZWN0LTQtYnJ5bnISCxIFTWF0Y2gYgICAgICAgAsM`  
 *{
  "message": "Game created between Alice and Bob! (key=ahpkZXZ-dWRhY2l0eS1wcm9qZWN0LTQtYnJ5bnIjCxIFTWF0Y2gYgICAgICAgAsMCxIER2FtZRiAgICAgIDACgw)"
@@ -116,68 +117,69 @@ Get the player rankings:
     - Path: 'create_user'
     - Method: POST
     - Parameters: user_name
-    - Returns: Message confirming creation of the User.
+    - Returns: StringMessage confirming creation of the User.
     - Description: *Create a User. Requires a unique username. Gets email from oauth account*
 
  - **create_match**
     - Path: 'create_match'
     - Method: POST
     - Parameters: player_1_name, player_2_name
-    - Returns: Message confirming creation of the Match.
-    - Description: *Create a Match between two Users*
+    - Returns: StringMessage confirming creation of the Match.
+    - Description: *Create a Match between two Users specified by their names*
 
  - **create_game**
     - Path: 'create_game'
     - Method: POST
     - Parameters: match_key
-    - Returns: Message confirming creation of the Game.
-    - Description: *Create a Game in a Match (between participating Users)*
+    - Returns: StringMessage confirming creation of the Game.
+    - Description: *Create a new Game in a current active Match (between the Users participating in the Match)*
 
  - **get_game**
     - Path: 'get_game'
     - Method: GET
     - Parameters: game_key
-    - Returns: Confirmation message listing players if Game is found.
-    - Description: *Get a Game from its websafe key*
+    - Returns: StringMessage listing players and game status/result if Game is found.
+    - Description: *Get a description of a Game from its websafe key*
     
  - **play_game**
     - Path: 'play_game'
     - Method: POST
     - Parameters: game_key, player_name, move
-    - Returns: Confirmation message listing move and result.
-    - Description: *Play move in a Game.* A move of 'True' corresponds to defecting and 'False' corresponds to staying silent. This function registers a single player's move. If both player's have played it scores the game and returns the result.  It also automatically updates the Match and player User objects.
+    - Returns: StringMessage listing move and result.
+    - Description: *Play a single player's move in a Game.* A move of 'True' corresponds to defecting and 'False' corresponds to staying silent.
+    If both player's have played, it scores the game and returns the result.  It also automatically updates the Match and player User objects.
     
  - **get_user_matches**
     - Path: 'get_user_matches'
     - Method: GET
     - Parameters: player_name
-    - Returns: List of active matches for the user
+    - Returns: StringMessage containing list of active matches for the user specified by name
     - Description: *Play move in a Game.*
 
  - **cancel_match**
     - Path: 'cancel_match'
     - Method: POST
     - Parameters: match_key
-    - Returns: Confirmation message
+    - Returns: StringMessage containing confirmation message
     - Description: *Cancel an active match*
  
  - **get_user_rankings**
     - Path: 'get_user_rankings'
     - Method: GET
     - Parameters: match_key
-    - Returns: List of Users in descending order of score
+    - Returns: StringMessage containing list of Users in descending order of score
     - Description: *Return list of Users in descending order of score*
     
   - **get_match_history**
     - Path: 'get_match_history'
     - Method: GET
     - Parameters: match_key
-    - Returns: List of Game plays in Match
+    - Returns: StringMessage containing list of Game plays in Match
     - Description: *Return list of Game plays in Match*
     
    - **get_active_users**
     - Path: 'get_active_users'
     - Method: GET
     - Parameters: 
-    - Returns: List of users with active matches
+    - Returns: StringMessage containing list of users with active matches
     - Description: *Return list of users with active matches*
