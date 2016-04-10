@@ -11,7 +11,7 @@ from models import User, Match
 
 class SendReminderEmail(webapp2.RequestHandler):
     def get(self):
-        """Send a reminder email to each User with an email about games.
+        """Send a reminder email to each User with active Matches.
         Called every hour using a cron job"""
         app_id = app_identity.get_application_id()
         users = User.query(User.email != None)
@@ -33,7 +33,7 @@ class SendReminderEmail(webapp2.RequestHandler):
                     body += '{} vs {}\n'.format(match.player_1_name,
                                                 match.player_2_name)
                     html += '{} vs {}<br>'.format(match.player_1_name,
-                                                match.player_2_name)
+                                                  match.player_2_name)
                 body += 'https://{}.appspot.com">Continue playing'\
                     .format(app_id)
                 html += '<a href="https://{}.appspot.com">Continue playing' \

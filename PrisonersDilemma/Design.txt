@@ -1,0 +1,30 @@
+What additional properties did you add to your models and why?
+
+- I added the score property to the User object to keep track of each user's score (ie. the number of wins minus losses).  This was necessary for the get_user_rankings function which lists the users in order of their scores.
+
+- I added the Match object to be used as the parent of multiple Games.  It has the following properties that are common across Games:
+    player_1_name = ndb.StringProperty()
+    player_2_name = ndb.StringProperty()
+    player_1_penalty = ndb.IntegerProperty()  # Penalty in years
+    player_2_penalty = ndb.IntegerProperty()  # Penalty in years
+
+  It also has the following properties to record the state of the Match itself.
+    games_remaining = ndb.IntegerProperty()
+    is_active = ndb.BooleanProperty()
+
+- I added the start_time property (ndb.DateTimeProperty()) to the Game object to keep track of the order of Games played in a Match.
+
+
+What were some of the trade-offs or struggles you faced when implementing the new game logic?
+
+The game I chose to implement is about as simple as a game can get.  The challenge was deciding on how to structure the models and how to implement a two player game.
+My design decisions were as follows:
+
+Players' information (name, email, score) is stored as a User object.  It is possible to create multiple Users with a single email address.  A single User per email address restriction could easily be added, but I decided that it wasn't necessary.  The only restriction when creating Users that they must have a unique name.  As multiple Users with the same email can exist, everything is managed using User names, not email addresses.  The User emails are only used to verify that the logged in player is authorized to make a Game move by matching the User email field to their OAuth email address.  (The play_game() endpoint is the only endpoint restricted in this manner, but other endpoints such as cancel_match could also be restricted if necessary.  Currently only implementing this bare minimum trades security for simplicity.)
+
+I chose to structure the Iterated Prisoner's Dilemma as a series of Games belonging to a Match where a Game is a single Prisoner's Dilemma.  (If one considers the whole Iterated Prisoner's Dilemma to be a game then it would be better structured as Rounds in a Game, but I stuck with the original naming).  As mentioned above the Match has common properties such as the participating players' names and the number of games remaining.  Individual Games store the players' moves and the result when the Game is finished.  The properties stored in the Game objects could be stored in the Match object as repeated properties, but while it requires creating more objects, splitting the necessary properties into two layers creates a cleaner structure.  A disadvantage of the current structure is that it is necessary for a player to manually create a new Games in a Match and communicate the key to the other player each time.  Automatically creating a new Game when a Match is created or when a Game finishes would make the front end logic simpler.  Also a helper function that gets the latest Game in an active Match would also be necessary.
+
+In terms of the game logic itself, the play_game() function is used to register a single player's move and return the result.  If only one player has made a move, the default result of 'Not all players have played yet' is returned. If this result is given, the player must poll for updates by repeating their move with play_game() or by using get_game().  This trades simplicity in this backend, for more complexity in the front end code.  To avoid having to poll in a real time two player game like this, the Channel API could be used. https://cloud.google.com/appengine/docs/python/channel/
+
+
+
